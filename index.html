@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>An Yên Cổ Tự — Đi Chùa Online</title>
+  <meta name="description" content="Ngôi chùa Việt 3D trực tuyến: thắp hương, ngồi thiền, gõ mõ tụng kinh, thả hoa đăng và đón Rằm, mùng Một cùng mọi người." />
+  <meta property="og:title" content="An Yên Cổ Tự — Đi Chùa Online" />
+  <meta property="og:description" content="Ghé chùa giữa ngày bận rộn: thắp một nén tâm hương, ngồi thiền, tụng kinh cùng mọi người." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#3a2416" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪷</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Canvas Thế Giới Chùa 2D Top-Down -->
+  <canvas id="templeCanvas"></canvas>
+
+  <!-- Thanh HUD Trên Cùng -->
+  <header class="top-hud">
+    <!-- Thông tin Nhân Vật (Click để đổi Pháp Phục / Tạo Nhân Vật) -->
+    <div class="hud-card profile-card" onclick="window.game.openModal('characterModal')" title="Nhấn để tùy chỉnh Nhân vật & Pháp phục">
+      <div class="avatar-circle">🪷</div>
+      <div class="player-meta">
+        <h2 id="hudPlayerName">Thiện Tâm</h2>
+        <p id="hudPlayerTitle">Khách Thập Phương • <span>Đổi Pháp Phục ✎</span></p>
+      </div>
+    </div>
+
+    <!-- Chỉ số Công Đức, Tâm Tịnh, Độ Thanh Tịnh Sân Chùa & Số Người Online -->
+    <div class="hud-card stats-card">
+      <div class="stat-block merit-stat-clickable" onclick="window.game.openModal('meritModal')" title="Nhấn để mở Sổ Vàng Công Đức & Bảng Xếp Hạng Đồng Tu" style="cursor:pointer;">
+        <span class="stat-label">Hạt Sen Công Đức ▾</span>
+        <span class="merit-badge">🪷 <span id="hudMeritCount">15</span></span>
+      </div>
+
+      <div class="stat-block">
+        <div class="stat-label">
+          <span>Tâm Tịnh</span>
+          <span>An Nhiên</span>
+        </div>
+        <div class="progress-track">
+          <div id="hudMindfulnessBar" class="progress-fill mind" style="width: 68%;"></div>
+        </div>
+      </div>
+
+      <div class="stat-block" title="Quét lá đa và nhặt rác giúp sân chùa đạt 100% để gọi Mưa Hoa Đại Cát!">
+        <div class="stat-label">
+          <span>Sân Chùa Sạch</span>
+          <span id="hudCleanlinessText">84%</span>
+        </div>
+        <div class="progress-track">
+          <div id="hudCleanlinessBar" class="progress-fill clean" style="width: 84%;"></div>
+        </div>
+      </div>
+
+      <div class="online-pill">
+        <span class="online-dot"></span>
+        <span id="hudOnlineCount">5 Phật tử trong chùa</span>
+      </div>
+    </div>
+
+    <!-- Hộp Nhạc Phật & Âm Thanh Thiền (Góc Phải) -->
+    <div class="audio-panel">
+      <button id="audioToggleBtn" type="button" class="audio-toggle-btn" aria-label="Mở nhạc & âm thanh thiền">🎶</button>
+      <div class="audio-panel-header">
+        <span>🎶 Nhạc Phật & Âm Thanh Thiền</span>
+        <button id="timeOfDayBtn" type="button" class="zen-chip" onclick="window.game.openModal('calendarModal')" title="Mở Lịch Chùa">🕰️ Lịch Chùa</button>
+      </div>
+      <div class="audio-toggles">
+        <button id="btnZenMusic" type="button" class="zen-chip" onclick="this.classList.toggle('active', window.zenAudio.toggleZenMusic())">🎵 Đàn Tranh Thiền</button>
+        <button id="btnRainAudio" type="button" class="zen-chip" onclick="this.classList.toggle('active', window.zenAudio.toggleRain())">🌧️ Mưa Hiên Chùa</button>
+        <button id="btnChimesAudio" type="button" class="zen-chip" onclick="this.classList.toggle('active', window.zenAudio.toggleWindChimes())">🎐 Chuông Gió</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Khung Trò Chuyện Đồng Tu & Bàn Trà Tâm Giao -->
+  <aside class="chat-widget">
+    <div class="chat-header">
+      <span>🍵 Đàm Đạo Cửa Thiền (Realtime)</span>
+      <span style="color:#a89f91;font-weight:400;">Bấm để đi • Kéo để xoay • Esc đóng bảng</span>
+    </div>
+    <div id="chatMessages" class="chat-messages">
+      <div class="chat-msg"><span class="chat-author">Sư Thầy Tuệ Tâm</span> <span class="chat-title">(Trụ Trì)</span>: <span class="chat-text">A Di Đà Phật! Hoan hỷ chào mừng thí chủ ghé thăm An Yên Cổ Tự.</span></div>
+      <div class="chat-msg"><span class="chat-author">Minh Anh</span> <span class="chat-title">(Tâm Sen Thanh Tịnh)</span>: <span class="chat-text">Sân chùa hôm nay nắng đẹp quá, cùng quét lá tích công đức nhé!</span></div>
+    </div>
+    <form id="chatForm" class="chat-form">
+      <input id="chatInput" type="text" maxlength="100" placeholder="Gửi lời chúc bình an tới mọi người..." />
+      <button type="submit">Gửi</button>
+    </form>
+  </aside>
+
+  <!-- Điện thoại: nút mở / đóng khung chat -->
+  <button id="chatToggleBtn" type="button" class="chat-toggle-btn" aria-label="Mở khung trò chuyện">💬</button>
+
+  <!-- Nút Gợi Ý Khi Đứng Gần Điểm Tương Tác -->
+  <button id="hotspotPrompt" type="button" class="hotspot-prompt"></button>
+
+  <!-- Thông báo Toast -->
+  <div id="templeToast" class="temple-toast"></div>
+
+  <!-- Thanh Công Cụ & Nghi Thức Dưới Đáy -->
+  <nav class="bottom-dock">
+    <button type="button" class="dock-btn tool-btn active" data-tool="none" onclick="window.game.setTool('none')">
+      🚶 Đi Dạo <span class="dock-key">1</span>
+    </button>
+    <button type="button" class="dock-btn tool-btn" data-tool="broom" onclick="window.game.setTool(window.game.player.tool === 'broom' ? 'none' : 'broom')">
+      🧹 Chổi Quét Chùa <span class="dock-key">2</span>
+    </button>
+    <button type="button" class="dock-btn tool-btn" data-tool="food" onclick="window.game.setTool(window.game.player.tool === 'food' ? 'none' : 'food')">
+      🌾 Cho Cá & Mèo Ăn <span class="dock-key">3</span>
+    </button>
+
+    <div class="dock-divider"></div>
+
+    <button type="button" class="dock-btn" onclick="window.game.performGreeting()">
+      🙏 Chắp Tay Chào <span class="dock-key">G</span>
+    </button>
+    <button type="button" class="dock-btn" onclick="window.game.openModal('incenseModal')">
+      🪔 Thắp Hương <span class="dock-key">H</span>
+    </button>
+    <button type="button" class="dock-btn" onclick="window.game.openZone('gac_chuong')">
+      🔔 Gác Chuông <span class="dock-key">M</span>
+    </button>
+    <button type="button" class="dock-btn" onclick="window.game.openZone('lau_xin_xam')">
+      🎋 Lầu Xin Xăm <span class="dock-key">X</span>
+    </button>
+    <button type="button" class="dock-btn" onclick="window.game.openZone('cay_nguyen_uoc')">
+      🧧 Cây Nguyện Ước <span class="dock-key">C</span>
+    </button>
+    <button type="button" class="dock-btn" onclick="window.game.openZone('ho_sen')">
+      🪷 Hồ Sen <span class="dock-key">L</span>
+    </button>
+    <button type="button" class="dock-btn" onclick="window.game.openZone('thuy_dinh')">
+      🍵 Hiên Trà <span class="dock-key">T</span>
+    </button>
+    <button type="button" class="dock-btn" onclick="window.game.openModal('dharmaModal')">
+      🙏 Vấn Đạo <span class="dock-key">V</span>
+    </button>
+    <button type="button" class="dock-btn" onclick="window.game.openModal('meritModal')">
+      📜 Công Đức <span class="dock-key">P</span>
+    </button>
+  </nav>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 1: TẠO NHÂN VẬT & CHỌN PHÁP PHỤC                     -->
+  <!-- ========================================================= -->
+  <div id="characterModal" class="modal-backdrop">
+    <div class="modal-card character-card">
+      <div class="modal-header">
+        <h3>🪷 Tạo Nhân Vật & Pháp Phục Đi Chùa</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('characterModal')">✕</button>
+      </div>
+
+      <div class="character-layout">
+        <div class="character-preview">
+          <canvas id="characterPreview" width="220" height="260"></canvas>
+          <p class="preview-hint">↔ Kéo để xoay 360°</p>
+          <p id="characterAccount" class="character-account"></p>
+          <button id="logoutBtn" type="button" class="link-btn" onclick="window.game.logout()">Đăng xuất</button>
+        </div>
+
+        <div class="character-options">
+          <div class="form-group">
+            <label for="playerNameInput">Pháp danh / Tên hiển thị</label>
+            <input id="playerNameInput" type="text" class="form-input" maxlength="18" placeholder="Tên hiện trên đầu nhân vật..." />
+          </div>
+
+          <div class="photo-card">
+            <img id="photoThumb" class="photo-thumb" alt="Ảnh bạn đã chọn" hidden />
+            <div class="photo-body">
+              <label id="photoButton" class="photo-button" for="photoInput">📷 Tạo nhân vật từ ảnh của bạn</label>
+              <input id="photoInput" type="file" accept="image/*" hidden />
+              <p id="photoStatus" class="photo-status"></p>
+              <label id="faceConsent" class="face-consent" hidden>
+                <input id="useFaceToggle" type="checkbox" />
+                <span>Dán <strong>khuôn mặt hoạt hình</strong> từ ảnh lên nhân vật.
+                  <small>Người khác trong chùa sẽ thấy. Chỉ lưu ảnh hoạt hình nhỏ 128px, không lưu ảnh gốc; xoá được bất cứ lúc nào.</small></span>
+              </label>
+              <button id="removeFaceBtn" type="button" class="link-btn" hidden>🗑️ Xoá khuôn mặt từ ảnh</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Màu Da</label>
+            <div class="chip-grid swatch-grid">
+              <div id="skinOptions" class="chip-grid swatch-grid"></div>
+              <label class="color-picker" title="Tự chọn màu da">🎨<input id="skinColorPicker" type="color" /></label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Dáng Mặt</label>
+            <div id="faceShapeOptions" class="chip-grid"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Đôi Mắt</label>
+            <div id="eyesOptions" class="chip-grid"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Cỡ Mắt</label>
+            <div id="eyeSizeOptions" class="chip-grid"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Mũi & Miệng</label>
+            <div id="noseOptions" class="chip-grid"></div>
+            <div id="mouthOptions" class="chip-grid" style="margin-top:6px;"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Râu</label>
+            <div id="beardOptions" class="chip-grid"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Kính</label>
+            <div id="glassesOptions" class="chip-grid"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Kiểu Tóc</label>
+            <div id="hairOptions" class="chip-grid"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Màu Tóc</label>
+            <div class="chip-grid">
+              <div id="hairColorOptions" class="chip-grid"></div>
+              <label class="color-picker" title="Tự chọn màu tóc">🎨<input id="hairColorPicker" type="color" /></label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Trang Phục Lên Chùa</label>
+            <div id="outfitOptions" class="chip-grid"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Vật Phẩm & Phụ Kiện (Mở khóa bằng Hạt Sen Công Đức 🪷)</label>
+            <div id="accessoryOptions" class="chip-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <p id="characterSaveError" class="form-error"></p>
+      <button id="characterSaveBtn" type="button" class="primary-action-btn" onclick="window.game.saveCharacterCustomization()">
+        ✨ Hoàn Tất & Bước Vào Sân Chùa
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MÀN ĐĂNG NHẬP / ĐĂNG KÝ                                    -->
+  <!-- ========================================================= -->
+  <div id="authScreen" class="auth-screen" hidden>
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-icon">🪷</div>
+        <h1>An Yên Cổ Tự</h1>
+        <p>Ghé chùa giữa ngày bận rộn, thắp một nén tâm hương cùng mọi người.</p>
+      </div>
+
+      <div class="auth-tabs" role="tablist">
+        <button id="authTabLogin" type="button" role="tab" class="auth-tab active" onclick="window.templeAccount.switchTab('login')">Đăng nhập</button>
+        <button id="authTabRegister" type="button" role="tab" class="auth-tab" onclick="window.templeAccount.switchTab('register')">Tạo tài khoản</button>
+      </div>
+
+      <form id="authForm" class="auth-form" novalidate>
+        <div class="form-group">
+          <label for="authUsername">Tên đăng nhập</label>
+          <input id="authUsername" type="text" class="form-input" autocomplete="username" maxlength="20" placeholder="vd: thien_tam" required />
+        </div>
+        <div class="form-group">
+          <label for="authPassword">Mật khẩu</label>
+          <input id="authPassword" type="password" class="form-input" autocomplete="current-password" maxlength="72" placeholder="Ít nhất 6 ký tự" required />
+        </div>
+        <div id="authNameGroup" class="form-group" hidden>
+          <label for="authName">Pháp danh hiển thị</label>
+          <input id="authName" type="text" class="form-input" maxlength="18" placeholder="vd: Thiện Tâm" />
+        </div>
+        <p id="authError" class="form-error" role="alert"></p>
+        <button id="authSubmit" type="submit" class="primary-action-btn">🙏 Vào Chùa</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 2: CHÍNH ĐIỆN TAM BẢO - THẮP HƯƠNG & LỄ PHẬT         -->
+  <!-- ========================================================= -->
+  <div id="incenseModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🪔 Chính Điện Tam Bảo — Dâng Nén Tâm Hương</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('incenseModal')">✕</button>
+      </div>
+
+      <p style="font-size:13.5px;margin-bottom:14px;line-height:1.5;color:#5c381e;">
+        Trước điện Phật trang nghiêm, hãy lắng lòng thanh tịnh, chọn hương trầm và gửi gắm lời nguyện cầu thiện lành cho bản thân cùng gia đình.
+      </p>
+
+      <div class="form-group">
+        <label for="incenseTypeSelect">Chọn Loại Hương Dâng Phật</label>
+        <select id="incenseTypeSelect" class="form-select">
+          <option value="Hương Trầm Bình An">🌿 Hương Trầm Bình An (Cầu sức khỏe, gia đạo êm ấm)</option>
+          <option value="Hương Sen Thanh Tịnh">🪷 Hương Sen Thanh Tịnh (Cầu tâm trí sáng suốt, buông bỏ âu lo)</option>
+          <option value="Hương Quế Hanh Thông">✨ Hương Quế Hanh Thông (Cầu học hành, sự nghiệp thuận lợi)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="incenseWishInput">Lời Nguyện Cầu Của Bạn</label>
+        <textarea id="incenseWishInput" rows="3" class="form-textarea" placeholder="Ví dụ: Con nguyện cầu cho cha mẹ mạnh khỏe, tâm mình luôn bình an trước mọi sóng gió..."></textarea>
+      </div>
+
+      <button type="button" class="primary-action-btn" onclick="window.game.submitIncensePrayer()">
+        🙏 Thắp 3 Nén Tâm Hương & Lễ Phật (+10 🪷)
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 3: GÁC CHUÔNG & GÕ MÕ TỊNH TÂM                      -->
+  <!-- ========================================================= -->
+  <div id="woodenFishModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔔 Gõ Mõ Tịnh Tâm & Thỉnh Đại Hồng Chung</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('woodenFishModal')">✕</button>
+      </div>
+
+      <p style="font-size:13.5px;margin-bottom:12px;color:#5c381e;">
+        Mỗi tiếng mõ cất lên giúp gom tâm ý về giây phút hiện tại. Bạn có thể nhấn trực tiếp vào chiếc mõ gỗ hoặc bật chế độ Gõ Mõ Tự Động khi làm việc.
+      </p>
+
+      <div class="wooden-fish-stage">
+        <div id="moRippleContainer"></div>
+        <button id="woodenFishVisual" type="button" class="wooden-fish-btn" onclick="window.game.tapWoodenFish()">
+          <span style="font-size:32px;">🪵</span>
+          <span>GÕ MÕ</span>
+          <small style="font-size:10px;opacity:0.85;">(Click liên tục)</small>
+        </button>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="button" class="choice-chip" style="flex:1;justify-content:center;" onclick="this.classList.toggle('active', window.zenAudio.toggleAutoMo(undefined, () => window.game.earnMerit('wooden_fish')))">
+          ⏱️ Bật / Tắt Gõ Mõ Tự Động
+        </button>
+        <button type="button" class="choice-chip" style="flex:1;justify-content:center;" onclick="window.game.ringGreatBell()">
+          🔔 Thỉnh Đại Hồng Chung (+3 🪷)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 4: LẦU XIN XĂM & BÀN GIẢI QUẺ SƯ THẦY               -->
+  <!-- ========================================================= -->
+  <div id="fortuneModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🎋 Lầu Xin Xăm & Giải Quẻ Đầu Ngày</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('fortuneModal')">✕</button>
+      </div>
+
+      <p style="font-size:13.5px;color:#5c381e;margin-bottom:10px;">
+        <strong>Bước 1:</strong> Thành tâm khấn nguyện và bấm <strong>Gieo Keo Âm Dương</strong>. Khi được <em>Thánh Đài (1 Úp - 1 Ngửa)</em> thì tiến hành lắc ống xăm.
+      </p>
+
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="choice-chip" style="flex:1;justify-content:center;background:#e6d5b8;" onclick="window.game.throwYinYangBlocks()">
+          ☯️ Bước 1: Gieo Đài Âm Dương (Xin Keo)
+        </button>
+        <button id="shakeFortuneBtn" type="button" disabled class="choice-chip" style="flex:1;justify-content:center;background:#8c2f24;color:#fff;" onclick="window.game.drawFortuneStick()">
+          🎋 Bước 2: Lắc Ống Xăm Rút Quẻ
+        </button>
+      </div>
+
+      <div id="xinKeoStatus" class="keo-result retry">
+        🙏 Hãy thành tâm bấm "Gieo Đài Âm Dương". Khi được Thánh Đài mới lắc được ống xăm.
+      </div>
+
+      <div id="bambooCylinderVisual" class="bamboo-cylinder" onclick="window.game.drawFortuneStick()" style="cursor:pointer;" title="Nhấn để lắc ống xăm">
+        🎋
+      </div>
+
+      <div id="fortuneResultCard" class="fortune-card" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 5: ĐIỆN CẦU DUYÊN & CÂY NGUYỆN ƯỚC CỔ THỤ           -->
+  <!-- ========================================================= -->
+  <div id="wishingTreeModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🧧 Điện Cầu Duyên & Cây Nguyện Ước Cổ Thụ</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('wishingTreeModal')">✕</button>
+      </div>
+
+      <button type="button" class="primary-action-btn" style="margin-top:0;margin-bottom:12px;background:linear-gradient(135deg,#c9184a,#800f2f);" onclick="window.game.drawLoveBlessing()">
+        💞 Xin Chỉ Đỏ & Rút Quẻ Nhân Duyên (+5 🪷)
+      </button>
+
+      <div id="loveBlessingBox" class="love-blessing-card" style="display:none;"></div>
+
+      <hr style="border:none;border-top:1px solid #decbb1;margin:14px 0;" />
+
+      <div class="form-group">
+        <label>Treo Dải Lụa Đỏ / Thẻ Gỗ Ước Nguyện Lên Cây Cổ Thụ</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <select id="wishCategorySelect" class="form-select" style="width:155px;">
+            <option value="Tình duyên">💕 Cầu Duyên</option>
+            <option value="Gia đạo">🏡 Gia Đạo Bình An</option>
+            <option value="Sự nghiệp">📚 Học Tập / Sự Nghiệp</option>
+            <option value="Sức khỏe">🌿 Sức Khỏe</option>
+          </select>
+          <input id="wishTextInput" type="text" class="form-input" maxlength="120" placeholder="Viết điều ước của bạn để treo lên cây..." />
+        </div>
+        <button type="button" class="choice-chip active" style="width:100%;justify-content:center;" onclick="window.game.hangNewWish()">
+          🎗️ Treo Thẻ Ước Nguyện Lên Cây (+8 🪷)
+        </button>
+      </div>
+
+      <label style="font-weight:700;font-size:13.5px;color:#4a3020;">🌸 Các Điều Ước Đang Treo Trên Cây (Hãy chúc phúc cho nhau):</label>
+      <div id="wishesListContainer" class="wishes-list"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 6: HỒ SEN PHÓNG SINH & THẢ ĐÈN HOA ĐĂNG             -->
+  <!-- ========================================================= -->
+  <div id="lanternModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🪷 Hồ Sen Từ Bi — Thả Đèn Hoa Đăng & Phóng Sinh</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('lanternModal')">✕</button>
+      </div>
+
+      <p style="font-size:13.5px;color:#5c381e;margin-bottom:14px;">
+        Mỗi ngọn đèn hoa đăng được thả xuống mặt hồ mang theo ánh sáng của trí tuệ và từ bi. Đèn của bạn sẽ nổi lung linh trên mặt nước Hồ Sen.
+      </p>
+
+      <div class="form-group">
+        <label>Chọn Sắc Màu Hoa Đăng</label>
+        <div class="chip-grid">
+          <button type="button" class="choice-chip active" onclick="window.game.selectedLanternColor='#ff7eb3';this.parentElement.querySelectorAll('.choice-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">
+            <span class="color-dot" style="background:#ff7eb3"></span> Sen Hồng Bình An
+          </button>
+          <button type="button" class="choice-chip" onclick="window.game.selectedLanternColor='#ffd166';this.parentElement.querySelectorAll('.choice-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">
+            <span class="color-dot" style="background:#ffd166"></span> Sen Vàng Trí Tuệ
+          </button>
+          <button type="button" class="choice-chip" onclick="window.game.selectedLanternColor='#ffffff';this.parentElement.querySelectorAll('.choice-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">
+            <span class="color-dot" style="background:#ffffff"></span> Sen Trắng Thanh Khiết
+          </button>
+          <button type="button" class="choice-chip" onclick="window.game.selectedLanternColor='#c792ea';this.parentElement.querySelectorAll('.choice-chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')">
+            <span class="color-dot" style="background:#c792ea"></span> Sen Tím Nhân Duyên
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="lanternWishInput">Lời Ước Gửi Theo Hoa Đăng</label>
+        <input id="lanternWishInput" type="text" class="form-input" maxlength="90" placeholder="Nhập tâm nguyện gửi theo ánh nến hoa đăng..." />
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="button" class="primary-action-btn" style="flex:2;" onclick="window.game.releaseLotusLantern()">
+          🕯️ Thả Đèn Hoa Đăng Xuống Hồ (+8 🪷)
+        </button>
+        <button type="button" class="primary-action-btn" style="flex:1;background:linear-gradient(135deg,#2a6f73,#1f565e);" onclick="window.game.dropFishFood(300,660);window.game.closeModal('lanternModal')">
+          🐟 Cho Cá Koi Ăn (+3 🪷)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- CHÍNH ĐIỆN: BẢNG THỰC HÀNH, THIỀN, KINH                   -->
+  <!-- ========================================================= -->
+  <div id="hallPanel" class="hall-panel" hidden>
+    <p id="hallStatus" class="hall-status"></p>
+    <div class="hall-actions">
+      <button type="button" class="dock-btn" data-hall="meditate">🧘 Ngồi Thiền</button>
+      <button type="button" class="dock-btn" data-hall="chant">🪵 Bát Nhã Tâm Kinh</button>
+      <button type="button" class="dock-btn" data-hall="tu_bi">🪷 Kinh Từ Bi</button>
+      <button type="button" class="dock-btn" data-hall="ke_chuong">🔔 Kệ Chuông</button>
+      <button type="button" class="dock-btn" data-hall="niem_phat">📿 Niệm Phật</button>
+      <button type="button" class="dock-btn" data-hall="bell">🔔 Thỉnh Chuông <span class="dock-key">B</span></button>
+      <button type="button" class="dock-btn" data-hall="bow">🙏 Đảnh Lễ</button>
+      <button type="button" class="dock-btn" data-hall="stand" hidden>🧍 Đứng Dậy</button>
+      <button type="button" class="dock-btn" data-hall="leave">🚪 Ra Sân Chùa</button>
+    </div>
+  </div>
+
+  <div id="meditationOverlay" class="meditation-overlay" hidden>
+    <div id="medSetup" class="med-card">
+      <h3>🧘 Tĩnh Tọa Thiền Định</h3>
+      <p>Ngồi thẳng lưng, thả lỏng vai, theo dõi hơi thở. Chọn thời gian ngồi:</p>
+      <div class="med-durations">
+        <button type="button" class="choice-chip" data-med-minutes="3">3 phút</button>
+        <button type="button" class="choice-chip" data-med-minutes="5">5 phút</button>
+        <button type="button" class="choice-chip" data-med-minutes="10">10 phút</button>
+        <button type="button" class="choice-chip" data-med-minutes="15">15 phút</button>
+        <button type="button" class="choice-chip" data-med-minutes="25">25 phút</button>
+      </div>
+      <button type="button" class="link-btn" data-hall="close-med-setup">Để lúc khác</button>
+    </div>
+    <div id="medSession" class="med-session" hidden>
+      <div class="breath-ring"><div id="breathCircle" class="breath-circle"></div></div>
+      <p id="breathText" class="breath-text">Hít vào…</p>
+      <p id="medTimer" class="med-timer">5:00</p>
+      <button type="button" class="med-end" data-hall="end-meditation">Xả thiền</button>
+    </div>
+  </div>
+
+  <div id="sutraPanel" class="sutra-panel" hidden>
+    <div class="sutra-header">
+      <div>
+        <h3 id="sutraTitle"></h3>
+        <p id="sutraIntro" class="sutra-intro"></p>
+      </div>
+      <button type="button" class="close-btn" data-hall="close-sutra" aria-label="Đóng kinh">✕</button>
+    </div>
+    <div id="sutraTabs" class="chip-grid" style="margin-bottom:2px;"></div>
+    <div id="sutraLangBar" class="sutra-lang-bar">
+      <button type="button" class="choice-chip active" data-sutra-lang="vi">🇻🇳 Gõ Tiếng Việt</button>
+      <button type="button" class="choice-chip" data-sutra-lang="en">🇬🇧 Gõ Tiếng Anh</button>
+      <button id="sutraAutoSpeakBtn" type="button" class="choice-chip" data-hall="toggle-speak" title="Tự phát âm từ Tiếng Anh khi tụng">🔊 Tự đọc EN</button>
+    </div>
+    <div id="sutraText" class="sutra-text"></div>
+    <div id="sutraVocabCard" class="sutra-vocab-card">
+      <div class="sutra-vocab-main">
+        <span id="sutraVocabWord" class="sutra-vocab-word"></span>
+        <span id="sutraVocabIpa" class="sutra-vocab-ipa"></span>
+        <span id="sutraVocabMeaning" class="sutra-vocab-meaning"></span>
+      </div>
+      <div class="sutra-vocab-actions">
+        <button type="button" class="sutra-speak-btn" data-hall="speak-word" title="Nghe phát âm từ Tiếng Anh">🔊 Từ</button>
+        <button type="button" class="sutra-speak-btn" data-hall="speak-line" title="Nghe đọc cả câu Tiếng Anh">🔊 Câu</button>
+      </div>
+    </div>
+    <div class="sutra-typing">
+      <input id="sutraInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        aria-label="Gõ chữ đang sáng trong kinh" />
+      <p id="sutraTypingHint" class="sutra-typing-hint">Gõ chữ đang sáng: có dấu thì tự sang chữ kế, không dấu thì nhấn <strong>Cách</strong>. Mỗi chữ đúng là một tiếng mõ.</p>
+    </div>
+    <div class="sutra-controls">
+      <button type="button" class="sutra-tap" data-hall="tap" title="Gõ mõ, bỏ qua chữ hiện tại">🪵 Chỉ gõ mõ</button>
+      <button id="sutraAutoBtn" type="button" class="choice-chip" data-hall="auto">⏱️ Tự gõ</button>
+      <label class="sutra-tempo">
+        <input id="sutraTempo" type="range" min="40" max="120" value="72" />
+        <span id="sutraTempoLabel">72 nhịp/phút</span>
+      </label>
+      <span id="sutraProgress" class="sutra-progress"></span>
+    </div>
+  </div>
+
+  <!-- Bảng hành động trong các khu riêng (Gác Chuông, Lầu Xăm, Cây Ước, Hồ Sen, Hiên Trà) -->
+  <div id="spacePanel" class="hall-panel" hidden>
+    <p id="spaceTitle" class="space-title"></p>
+    <p id="spaceStatus" class="hall-status"></p>
+    <div id="spaceActions" class="hall-actions"></div>
+  </div>
+
+  <!-- Thẻ điều ước khi bấm vào thẻ gỗ trên cây -->
+  <div id="wishCard" class="wish-card floating-wish" hidden>
+    <button type="button" class="close-btn" onclick="window.game.hideWishCard()" aria-label="Đóng">✕</button>
+    <div class="wish-card-top">
+      <span class="wish-cat-tag"></span>
+      <span class="wish-author"></span>
+    </div>
+    <p class="wish-body"></p>
+    <div class="wish-footer">
+      <button type="button" class="bless-btn"></button>
+    </div>
+  </div>
+
+  <!-- Thông báo sự kiện chung đang diễn ra -->
+  <div id="eventBanner" class="event-banner" hidden>
+    <span class="event-icon"></span>
+    <div class="event-body">
+      <strong class="event-name"></strong>
+      <p class="event-text"></p>
+    </div>
+    <button type="button" class="event-go"></button>
+    <button type="button" class="event-close" aria-label="Đóng thông báo">✕</button>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 7: VẤN ĐẠO SƯ THẦY TUỆ TÂM — PHÁP THOẠI CHỮA LÀNH   -->
+  <!-- ========================================================= -->
+  <div id="dharmaModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🙏 Vấn Đạo Sư Thầy Tuệ Tâm</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('dharmaModal')">✕</button>
+      </div>
+
+      <p style="font-size:13.5px;color:#5c381e;margin-bottom:12px;">
+        “A Di Đà Phật! Giữa dòng đời vạn biến, hôm nay tâm thí chủ đang vướng bận điều chi? Hãy chia sẻ để Bần tăng gửi đôi lời pháp thoại làm mát dịu tâm tư.”
+      </p>
+
+      <div class="form-group">
+        <label>Tâm Sự Hôm Nay Của Bạn</label>
+        <div id="dharmaTopicList" class="chip-grid" style="flex-direction:column;align-items:stretch;"></div>
+      </div>
+
+      <div id="dharmaResultCard" class="fortune-card" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 8: SỔ VÀNG CÔNG ĐỨC & THÀNH TỰU ĐỒNG TU             -->
+  <!-- ========================================================= -->
+  <div id="meritModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📜 Sổ Vàng Công Đức & Hành Trình Tu Tập</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('meritModal')">✕</button>
+      </div>
+
+      <div id="meritProgressSection" class="fortune-card" style="margin-top:0;margin-bottom:14px;"></div>
+
+      <h4 class="cal-heading">🌱 Nhật Ký Thiện Hạnh Của Bạn</h4>
+      <div id="meritStatsGrid" class="merit-stats-grid"></div>
+
+      <h4 class="cal-heading">✨ Pháp Bảo & Phụ Kiện Theo Công Đức</h4>
+      <div id="meritUnlockList" class="merit-unlock-list"></div>
+
+      <h4 class="cal-heading">🏆 Bảng Vàng Đồng Tu Tinh Tấn</h4>
+      <div id="meritLeaderboard" class="merit-leaderboard"></div>
+    </div>
+  </div>
+
+  <!-- Lịch Chùa: ngày âm, sự kiện, khung cảnh trời -->
+  <div id="calendarModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📅 Lịch Chùa An Yên</h3>
+        <button type="button" class="close-btn" onclick="window.game.closeModal('calendarModal')">✕</button>
+      </div>
+      <p id="calToday" class="cal-today"></p>
+      <p id="calLunar" class="cal-lunar"></p>
+
+      <h4 class="cal-heading">Đang diễn ra</h4>
+      <div id="calActive"></div>
+
+      <h4 class="cal-heading">Khung cảnh bầu trời</h4>
+      <div class="chip-grid">
+        <button type="button" class="choice-chip" data-light="auto">🕰️ Theo giờ thật</button>
+        <button type="button" class="choice-chip" data-light="day">☀️ Ban ngày</button>
+        <button type="button" class="choice-chip" data-light="sunset">🌅 Hoàng hôn</button>
+        <button type="button" class="choice-chip" data-light="night">🌙 Ban đêm</button>
+      </div>
+
+      <h4 class="cal-heading">Thời khoá hằng ngày (giờ Việt Nam)</h4>
+      <ul class="cal-schedule">
+        <li><strong>4:30 – 5:30</strong> Công phu sáng trong Chính Điện</li>
+        <li><strong>17:00 – 18:00</strong> Công phu chiều trong Chính Điện</li>
+        <li><strong>19:00 – 22:00</strong> Đêm Hoa Đăng bên Hồ Sen (ngày Rằm)</li>
+      </ul>
+
+      <h4 class="cal-heading">Ngày lễ sắp tới</h4>
+      <div id="calUpcoming"></div>
+    </div>
+  </div>
+
+  <div id="spaceFade" class="space-fade"></div>
+
+  <!-- Scripts -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="js/3d/main.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/account.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/hall-practice.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Dữ liệu người chơi: tài khoản, phiên đăng nhập, ảnh mặt — KHÔNG đưa lên GitHub
+data/
+backups/
+*.db
+*.db-journal
+
+# File tạm của Python / hệ điều hành
+__pycache__/
+*.pyc
+.DS_Store
+
+# Cài đặt riêng của Claude Code trên máy này
+.claude/settings.local.json

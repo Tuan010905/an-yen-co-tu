@@ -1,0 +1,27 @@
+# Cấu hình Caddy cho An Yên Cổ Tự. Caddy tự xin và gia hạn chứng chỉ HTTPS miễn phí (Let's Encrypt).
+# Script cài đặt sẽ tự thay "ten-mien-cua-ban.vn" bằng tên miền thật.
+
+ten-mien-cua-ban.vn {
+	# Nén trang cho nhanh, trừ luồng tin thời gian thực (nén sẽ làm tin bị giữ lại)
+	@notStream not path /api/stream
+	encode @notStream zstd gzip
+
+	reverse_proxy 127.0.0.1:8080 {
+		# Báo IP thật của người chơi cho server (để chặn dò mật khẩu đúng người)
+		header_up X-Real-IP {remote_host}
+		# Gửi tin thời gian thực ngay, không gom lại
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+# Gõ www.ten-mien thì chuyển về tên miền chính
+www.ten-mien-cua-ban.vn {
+	redir https://ten-mien-cua-ban.vn{uri} permanent
+}

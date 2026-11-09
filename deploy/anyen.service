@@ -1,0 +1,28 @@
+# Dịch vụ chạy server An Yên Cổ Tự trên VPS (tự khởi động cùng máy, tự chạy lại nếu lỗi)
+[Unit]
+Description=An Yen Co Tu - Di Chua Online
+After=network.target
+
+[Service]
+User=anyen
+Group=anyen
+WorkingDirectory=/opt/anyen
+Environment=PORT=8080
+Environment=HOST=127.0.0.1
+Environment=TRUST_PROXY=1
+Environment=COOKIE_SECURE=1
+Environment=TEMPLE_DATA_DIR=/opt/anyen/data
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/anyen/server.py
+Restart=always
+RestartSec=3
+
+# Giới hạn quyền: server chỉ ghi được vào thư mục dữ liệu và sao lưu
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/anyen/data /opt/anyen/backups
+
+[Install]
+WantedBy=multi-user.target
